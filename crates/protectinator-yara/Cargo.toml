@@ -8,12 +8,13 @@ description = "YARA scanning for Protectinator"
 [dependencies]
 protectinator-core = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
 tracing = { workspace = true }
+thiserror = { workspace = true }
 walkdir = { workspace = true }
-
-# YARA binding is optional due to binary size impact
-# yara = { version = "0.28", optional = true }
+regex = { workspace = true }
+rayon = { workspace = true }
 
 [features]
 default = []
-# yara-scanning = ["yara"]

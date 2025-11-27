@@ -7,6 +7,7 @@ description = "Process and connection monitor for Protectinator"
 
 [dependencies]
 protectinator-core = { workspace = true }
-sysinfo = { workspace = true }
+sysinfo = { version = "0.32", default-features = false, features = ["system", "user"] }
 serde = { workspace = true }
+serde_json = { workspace = true }
 tracing = { workspace = true }

@@ -9,18 +9,34 @@ description = "Protectinator - A portable security monitoring tool"
 name = "protectinator"
 path = "src/main.rs"
 
+[features]
+default = ["full"]
+# Full feature set
+full = ["fim", "sigma", "hardening", "osverify", "persistence", "procmon", "yara", "privesc"]
+# Individual features
+fim = ["protectinator-fim"]
+sigma = ["protectinator-sigma"]
+hardening = ["protectinator-hardening"]
+osverify = ["protectinator-osverify"]
+persistence = ["protectinator-persistence"]
+procmon = ["protectinator-procmon"]
+yara = ["protectinator-yara"]
+privesc = ["protectinator-privesc"]
+# Minimal build with just core scanning
+minimal = ["hardening", "persistence"]
+
 [dependencies]
 protectinator-core = { workspace = true }
 protectinator-platform = { workspace = true }
 protectinator-engine = { workspace = true }
-protectinator-fim = { workspace = true }
-protectinator-sigma = { workspace = true }
-protectinator-hardening = { workspace = true }
-protectinator-osverify = { workspace = true }
-protectinator-persistence = { workspace = true }
-protectinator-procmon = { workspace = true }
-protectinator-yara = { workspace = true }
-protectinator-privesc = { workspace = true }
+protectinator-fim = { workspace = true, optional = true }
+protectinator-sigma = { workspace = true, optional = true }
+protectinator-hardening = { workspace = true, optional = true }
+protectinator-osverify = { workspace = true, optional = true }
+protectinator-persistence = { workspace = true, optional = true }
+protectinator-procmon = { workspace = true, optional = true }
+protectinator-yara = { workspace = true, optional = true }
+protectinator-privesc = { workspace = true, optional = true }
 
 clap = { workspace = true }
 serde = { workspace = true }

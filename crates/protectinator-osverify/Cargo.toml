@@ -7,8 +7,13 @@ description = "OS file verification for Protectinator"
 
 [dependencies]
 protectinator-core = { workspace = true }
+protectinator-platform = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
+blake3 = { workspace = true }
 tracing = { workspace = true }
-ureq = { workspace = true }
+thiserror = { workspace = true }
+rayon = { workspace = true }
+walkdir = { workspace = true }
+regex = { workspace = true }

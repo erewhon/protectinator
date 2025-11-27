@@ -9,7 +9,12 @@ description = "System hardening checks for Protectinator"
 protectinator-core = { workspace = true }
 protectinator-platform = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 tracing = { workspace = true }
+thiserror = { workspace = true }
+walkdir = { workspace = true }
+glob = { workspace = true }
+regex = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.29", features = ["fs", "user"] }
