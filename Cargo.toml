@@ -1,0 +1,94 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/protectinator-core",
+    "crates/protectinator-platform",
+    "crates/protectinator-engine",
+    "crates/protectinator-fim",
+    "crates/protectinator-sigma",
+    "crates/protectinator-hardening",
+    "crates/protectinator-osverify",
+    "crates/protectinator-persistence",
+    "crates/protectinator-procmon",
+    "crates/protectinator-yara",
+    "crates/protectinator-privesc",
+    "apps/protectinator-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/your-org/protectinator"
+rust-version = "1.75"
+authors = ["Protectinator Contributors"]
+description = "A portable, zero-config security monitoring tool"
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Hashing
+sha2 = "0.10"
+blake3 = "1.5"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI
+clap = { version = "4.0", features = ["derive"] }
+
+# Database
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# File system
+walkdir = "2"
+glob = "0.3"
+regex = "1"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Resource embedding
+rust-embed = { version = "8", features = ["compression"] }
+
+# Parallel processing
+rayon = "1.10"
+
+# System info
+sysinfo = { version = "0.32", default-features = false, features = ["system"] }
+
+# HTTP client (minimal deps, rustls for TLS)
+ureq = { version = "2.0", default-features = false, features = ["tls"] }
+
+# Internal crates
+protectinator-core = { path = "crates/protectinator-core" }
+protectinator-platform = { path = "crates/protectinator-platform" }
+protectinator-engine = { path = "crates/protectinator-engine" }
+protectinator-fim = { path = "crates/protectinator-fim" }
+protectinator-sigma = { path = "crates/protectinator-sigma" }
+protectinator-hardening = { path = "crates/protectinator-hardening" }
+protectinator-osverify = { path = "crates/protectinator-osverify" }
+protectinator-persistence = { path = "crates/protectinator-persistence" }
+protectinator-procmon = { path = "crates/protectinator-procmon" }
+protectinator-yara = { path = "crates/protectinator-yara" }
+protectinator-privesc = { path = "crates/protectinator-privesc" }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+opt-level = "z"
+
+[profile.release-debug]
+inherits = "release"
+debug = true
+strip = false

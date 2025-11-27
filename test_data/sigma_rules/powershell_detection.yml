@@ -1,0 +1,30 @@
+title: Suspicious PowerShell Execution
+id: test-rule-001
+status: test
+level: high
+description: Detects suspicious PowerShell command execution patterns
+author: Test Author
+date: 2024/01/01
+references:
+    - https://attack.mitre.org/techniques/T1059/001/
+tags:
+    - attack.execution
+    - attack.t1059.001
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        CommandLine|contains:
+            - 'powershell'
+            - 'pwsh'
+    filter_encoded:
+        CommandLine|contains:
+            - '-enc'
+            - '-encoded'
+            - '-e '
+            - 'FromBase64String'
+    condition: selection and filter_encoded
+falsepositives:
+    - Legitimate administrative scripts
+    - Software deployment tools

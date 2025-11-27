@@ -1,0 +1,13 @@
+[package]
+name = "protectinator-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Core types, traits, and error handling for Protectinator"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }

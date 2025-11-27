@@ -1,0 +1,24 @@
+title: SSH Failed Login Attempt
+id: test-rule-002
+status: test
+level: medium
+description: Detects failed SSH login attempts that may indicate brute force
+author: Test Author
+date: 2024/01/01
+references:
+    - https://attack.mitre.org/techniques/T1110/
+tags:
+    - attack.credential_access
+    - attack.t1110
+logsource:
+    category: authentication
+    product: linux
+detection:
+    selection:
+        message|contains:
+            - 'Failed password'
+            - 'authentication failure'
+            - 'Invalid user'
+    condition: selection
+falsepositives:
+    - Legitimate failed login attempts

@@ -1,0 +1,20 @@
+[package]
+name = "protectinator-yara"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "YARA scanning for Protectinator"
+
+[dependencies]
+protectinator-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+walkdir = { workspace = true }
+regex = { workspace = true }
+rayon = { workspace = true }
+
+[features]
+default = []
