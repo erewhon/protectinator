@@ -1,0 +1,14 @@
+[package]
+name = "protectinator-persistence"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Persistence mechanism scanner for Protectinator"
+
+[dependencies]
+protectinator-core = { workspace = true }
+protectinator-platform = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
+glob = { workspace = true }

@@ -1,0 +1,16 @@
+[package]
+name = "protectinator-privesc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Privilege escalation path finder for Protectinator"
+
+[dependencies]
+protectinator-core = { workspace = true }
+protectinator-platform = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.29", features = ["fs", "user"] }

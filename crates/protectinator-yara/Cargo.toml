@@ -1,0 +1,19 @@
+[package]
+name = "protectinator-yara"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "YARA scanning for Protectinator"
+
+[dependencies]
+protectinator-core = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
+
+# YARA binding is optional due to binary size impact
+# yara = { version = "0.28", optional = true }
+
+[features]
+default = []
+# yara-scanning = ["yara"]

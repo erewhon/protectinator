@@ -1,0 +1,12 @@
+[package]
+name = "protectinator-procmon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Process and connection monitor for Protectinator"
+
+[dependencies]
+protectinator-core = { workspace = true }
+sysinfo = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }

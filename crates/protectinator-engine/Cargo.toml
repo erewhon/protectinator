@@ -1,0 +1,13 @@
+[package]
+name = "protectinator-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Orchestration engine for Protectinator security checks"
+
+[dependencies]
+protectinator-core = { workspace = true }
+protectinator-platform = { workspace = true }
+tracing = { workspace = true }
+rayon = { workspace = true }
+serde_json = { workspace = true }

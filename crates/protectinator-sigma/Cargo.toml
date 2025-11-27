@@ -1,0 +1,13 @@
+[package]
+name = "protectinator-sigma"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Sigma rules engine for Protectinator"
+
+[dependencies]
+protectinator-core = { workspace = true }
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+tracing = { workspace = true }
+glob = { workspace = true }

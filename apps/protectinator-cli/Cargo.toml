@@ -1,0 +1,31 @@
+[package]
+name = "protectinator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Protectinator - A portable security monitoring tool"
+
+[[bin]]
+name = "protectinator"
+path = "src/main.rs"
+
+[dependencies]
+protectinator-core = { workspace = true }
+protectinator-platform = { workspace = true }
+protectinator-engine = { workspace = true }
+protectinator-fim = { workspace = true }
+protectinator-sigma = { workspace = true }
+protectinator-hardening = { workspace = true }
+protectinator-osverify = { workspace = true }
+protectinator-persistence = { workspace = true }
+protectinator-procmon = { workspace = true }
+protectinator-yara = { workspace = true }
+protectinator-privesc = { workspace = true }
+
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
