@@ -41,6 +41,11 @@ pub enum FindingSource {
         rule_name: String,
         rule_file: Option<String>,
     },
+    /// Finding from log analysis (generic Sigma-like detection)
+    LogAnalysis {
+        log_source: String,
+        rule_id: String,
+    },
     /// Finding from file integrity monitoring
     FileIntegrity {
         baseline_path: String,
