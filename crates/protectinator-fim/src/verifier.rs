@@ -7,8 +7,25 @@ use protectinator_core::{ProgressReporter, Result};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+/// Progress information passed to the progress callback
+#[derive(Debug, Clone)]
+pub struct FimProgressInfo {
+    /// Number of files checked so far
+    pub files_checked: usize,
+    /// Total number of files to check
+    pub total_files: usize,
+    /// Total bytes checked so far
+    pub bytes_checked: u64,
+    /// Elapsed time since verification started
+    pub elapsed: Duration,
+}
+
+/// Callback type for FIM progress reporting
+pub type FimProgressCallback = Arc<dyn Fn(FimProgressInfo) + Send + Sync>;
 
 /// Result of verifying a file against baseline
 #[derive(Debug, Clone)]
@@ -71,7 +88,7 @@ pub struct FileVerification {
 }
 
 /// Baseline verifier configuration
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct VerifierConfig {
     /// Check file permissions
     pub check_permissions: bool,
@@ -81,6 +98,8 @@ pub struct VerifierConfig {
     pub quick_check: bool,
     /// Use parallel verification
     pub parallel: bool,
+    /// Progress callback for cumulative progress reporting
+    pub progress_callback: Option<FimProgressCallback>,
 }
 
 impl Default for VerifierConfig {
@@ -90,7 +109,20 @@ impl Default for VerifierConfig {
             check_ownership: true,
             quick_check: true,
             parallel: true,
+            progress_callback: None,
         }
+    }
+}
+
+impl std::fmt::Debug for VerifierConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VerifierConfig")
+            .field("check_permissions", &self.check_permissions)
+            .field("check_ownership", &self.check_ownership)
+            .field("quick_check", &self.quick_check)
+            .field("parallel", &self.parallel)
+            .field("progress_callback", &self.progress_callback.is_some())
+            .finish()
     }
 }
 
@@ -136,9 +168,9 @@ impl BaselineVerifier {
         }
 
         let results = if self.config.parallel {
-            self.verify_parallel(&baseline_files, progress)
+            self.verify_parallel(&baseline_files, total_files, progress)
         } else {
-            self.verify_sequential(&baseline_files, progress)
+            self.verify_sequential(&baseline_files, total_files, progress)
         };
 
         if let Some(p) = progress {
@@ -152,13 +184,27 @@ impl BaselineVerifier {
     fn verify_sequential(
         &self,
         baseline_files: &[StoredFileEntry],
+        total_files: usize,
         progress: Option<&dyn ProgressReporter>,
     ) -> Vec<FileVerification> {
         let mut results = Vec::new();
+        let start = Instant::now();
+        let mut bytes_checked: u64 = 0;
 
         for (i, entry) in baseline_files.iter().enumerate() {
             if let Some(p) = progress {
                 p.progress(i + 1, &entry.path);
+            }
+
+            // Call progress callback if set
+            if let Some(ref callback) = self.config.progress_callback {
+                bytes_checked += entry.size;
+                callback(FimProgressInfo {
+                    files_checked: i + 1,
+                    total_files,
+                    bytes_checked,
+                    elapsed: start.elapsed(),
+                });
             }
 
             let result = self.verify_file(entry);
@@ -172,20 +218,35 @@ impl BaselineVerifier {
     fn verify_parallel(
         &self,
         baseline_files: &[StoredFileEntry],
+        total_files: usize,
         progress: Option<&dyn ProgressReporter>,
     ) -> Vec<FileVerification> {
         let counter = AtomicUsize::new(0);
+        let bytes_counter = AtomicU64::new(0);
         let algorithm = self.hasher.algorithm();
+        let progress_callback = self.config.progress_callback.clone();
+        let start = Instant::now();
 
         baseline_files
             .par_iter()
             .map(|entry| {
-                let current = counter.fetch_add(1, Ordering::SeqCst);
+                let current = counter.fetch_add(1, Ordering::SeqCst) + 1;
+                let current_bytes = bytes_counter.fetch_add(entry.size, Ordering::SeqCst) + entry.size;
 
                 if let Some(p) = progress {
                     if current % 100 == 0 {
                         p.progress(current, &entry.path);
                     }
+                }
+
+                // Call progress callback if set
+                if let Some(ref callback) = progress_callback {
+                    callback(FimProgressInfo {
+                        files_checked: current,
+                        total_files,
+                        bytes_checked: current_bytes,
+                        elapsed: start.elapsed(),
+                    });
                 }
 
                 // Create a new hasher for this thread

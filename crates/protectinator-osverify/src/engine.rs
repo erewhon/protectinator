@@ -8,8 +8,27 @@ use sha2::{Digest, Sha256};
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::Path;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
+
+/// Progress information passed to the progress callback
+#[derive(Debug, Clone)]
+pub struct ProgressInfo {
+    /// Number of files checked so far
+    pub files_checked: usize,
+    /// Total bytes checked so far
+    pub bytes_checked: u64,
+    /// Number of packages processed so far
+    pub packages_checked: usize,
+    /// Total number of packages (if known)
+    pub total_packages: Option<usize>,
+    /// Elapsed time since verification started
+    pub elapsed: Duration,
+}
+
+/// Callback type for progress reporting
+pub type ProgressCallback = Arc<dyn Fn(ProgressInfo) + Send + Sync>;
 
 /// Verification mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -26,7 +45,7 @@ pub enum VerificationMode {
 }
 
 /// Configuration for the verification engine
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct VerifyConfig {
     /// Verification mode
     pub mode: VerificationMode,
@@ -44,6 +63,8 @@ pub struct VerifyConfig {
     pub paths: Vec<String>,
     /// Show progress
     pub show_progress: bool,
+    /// Progress callback for cumulative progress reporting
+    pub progress_callback: Option<ProgressCallback>,
 }
 
 impl Default for VerifyConfig {
@@ -57,7 +78,24 @@ impl Default for VerifyConfig {
             packages: Vec::new(),
             paths: Vec::new(),
             show_progress: true,
+            progress_callback: None,
         }
+    }
+}
+
+impl std::fmt::Debug for VerifyConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("VerifyConfig")
+            .field("mode", &self.mode)
+            .field("skip_config", &self.skip_config)
+            .field("check_symlinks", &self.check_symlinks)
+            .field("check_permissions", &self.check_permissions)
+            .field("threads", &self.threads)
+            .field("packages", &self.packages)
+            .field("paths", &self.paths)
+            .field("show_progress", &self.show_progress)
+            .field("progress_callback", &self.progress_callback.is_some())
+            .finish()
     }
 }
 
@@ -132,27 +170,52 @@ impl VerificationEngine {
 
         summary.total_packages = packages.len();
 
-        let results_count = AtomicUsize::new(0);
-        let progress_count = AtomicUsize::new(0);
+        let files_checked = AtomicUsize::new(0);
+        let bytes_checked = AtomicU64::new(0);
+        let packages_checked = AtomicUsize::new(0);
+        let total_packages = packages.len();
+        let progress_callback = self.config.progress_callback.clone();
+        let progress_start = Instant::now();
 
         // Process packages in parallel
         let all_results: Vec<(String, Vec<VerificationResult>)> = packages
             .par_iter()
             .filter_map(|pkg| {
-                if self.config.show_progress {
-                    let count = progress_count.fetch_add(1, Ordering::Relaxed);
-                    if count % 50 == 0 {
-                        tracing::debug!("Verified {}/{} packages", count, packages.len());
-                    }
-                }
-
                 match pm.verify_package(pkg) {
                     Ok(results) => {
-                        results_count.fetch_add(results.len(), Ordering::Relaxed);
+                        // Count files and bytes for this package
+                        let mut pkg_bytes: u64 = 0;
+                        for result in &results {
+                            if let Ok(metadata) = std::fs::metadata(&result.path) {
+                                pkg_bytes += metadata.len();
+                            }
+                        }
+
+                        let file_count = results.len();
+                        let new_files = files_checked.fetch_add(file_count, Ordering::Relaxed) + file_count;
+                        let new_bytes = bytes_checked.fetch_add(pkg_bytes, Ordering::Relaxed) + pkg_bytes;
+                        let new_pkgs = packages_checked.fetch_add(1, Ordering::Relaxed) + 1;
+
+                        // Call progress callback if set
+                        if let Some(ref callback) = progress_callback {
+                            callback(ProgressInfo {
+                                files_checked: new_files,
+                                bytes_checked: new_bytes,
+                                packages_checked: new_pkgs,
+                                total_packages: Some(total_packages),
+                                elapsed: progress_start.elapsed(),
+                            });
+                        }
+
+                        if self.config.show_progress && new_pkgs % 50 == 0 {
+                            tracing::debug!("Verified {}/{} packages", new_pkgs, total_packages);
+                        }
+
                         Some((pkg.clone(), results))
                     }
                     Err(e) => {
                         tracing::warn!("Failed to verify package {}: {}", pkg, e);
+                        packages_checked.fetch_add(1, Ordering::Relaxed);
                         None
                     }
                 }
