@@ -3,9 +3,11 @@
 use clap::{Args, Subcommand};
 use protectinator_fim::{
     diff_baselines, format_size, BaselineDatabase, BaselineVerifier, DiffType, FileScanner,
-    HashAlgorithm, VerificationResult,
+    FimProgressInfo, HashAlgorithm, VerificationResult, VerifierConfig,
 };
+use std::io::{self, Write};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Instant;
 
 #[derive(Subcommand)]
@@ -73,6 +75,14 @@ pub struct VerifyArgs {
     /// Only show changes (hide matched files)
     #[arg(long, short = 'c')]
     changes_only: bool,
+
+    /// Ignore permission changes
+    #[arg(long)]
+    ignore_permissions: bool,
+
+    /// Show cumulative progress (files and bytes checked with rate)
+    #[arg(long)]
+    progress: bool,
 }
 
 #[derive(Args)]
@@ -100,6 +110,9 @@ pub fn run(cmd: FimCommands) -> anyhow::Result<()> {
 }
 
 fn create_baseline(args: BaselineArgs) -> anyhow::Result<()> {
+    use std::io::{self, Write};
+    use std::sync::Arc;
+
     println!("Creating baseline for: {}", args.path.display());
 
     let algorithm: HashAlgorithm = args.algorithm.parse()?;
@@ -122,11 +135,18 @@ fn create_baseline(args: BaselineArgs) -> anyhow::Result<()> {
     let start = Instant::now();
 
     println!("\nScanning files...");
+
+    let progress = Arc::new(BaselineScanProgress);
+
     let entries = if args.parallel {
-        scanner.scan_parallel(&args.path)?
+        scanner.scan_parallel_with_progress(&args.path, Some(progress))?
     } else {
-        scanner.scan(&args.path)?
+        scanner.scan_with_progress(&args.path, Some(progress.as_ref()))?
     };
+
+    // Clear progress line and print final count
+    print!("\r\x1b[K");
+    io::stdout().flush().ok();
 
     let scan_duration = start.elapsed();
     let total_size: u64 = entries.iter().map(|e| e.size).sum();
@@ -193,11 +213,37 @@ fn verify_baseline(args: VerifyArgs) -> anyhow::Result<()> {
 
     let algorithm: HashAlgorithm = stored_algorithm.parse()?;
 
-    let config = protectinator_fim::VerifierConfig {
-        check_permissions: true,
-        check_ownership: true,
+    // Set up progress callback if --progress flag is set
+    let progress_callback = if args.progress {
+        Some(Arc::new(move |info: FimProgressInfo| {
+            // Calculate MB/s rate
+            let elapsed_secs = info.elapsed.as_secs_f64();
+            let rate = if elapsed_secs > 0.0 {
+                let mb_checked = info.bytes_checked as f64 / (1024.0 * 1024.0);
+                format!("{:.1} MB/s", mb_checked / elapsed_secs)
+            } else {
+                "-- MB/s".to_string()
+            };
+
+            print!(
+                "\r\x1b[KProgress: {}/{} files, {} ({}) ",
+                info.files_checked,
+                info.total_files,
+                format_size(info.bytes_checked),
+                rate
+            );
+            let _ = io::stdout().flush();
+        }) as Arc<dyn Fn(FimProgressInfo) + Send + Sync>)
+    } else {
+        None
+    };
+
+    let config = VerifierConfig {
+        check_permissions: !args.ignore_permissions,
+        check_ownership: !args.ignore_permissions,
         quick_check: true,
         parallel: args.parallel,
+        progress_callback,
     };
 
     let verifier = BaselineVerifier::with_config(algorithm, config);
@@ -206,6 +252,12 @@ fn verify_baseline(args: VerifyArgs) -> anyhow::Result<()> {
     let start = Instant::now();
     let results = verifier.verify(&db)?;
     let duration = start.elapsed();
+
+    // Clear progress line if it was shown
+    if args.progress {
+        print!("\r\x1b[K");
+        let _ = io::stdout().flush();
+    }
 
     let summary = BaselineVerifier::summarize(&results);
 
@@ -370,4 +422,24 @@ fn show_stats(args: StatsArgs) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+/// Progress reporter for baseline scanning that prints files scanned
+struct BaselineScanProgress;
+
+impl protectinator_core::ProgressReporter for BaselineScanProgress {
+    fn phase_started(&self, _name: &str, _total_items: usize) {}
+
+    fn progress(&self, current: usize, _message: &str) {
+        use std::io::Write;
+
+        print!("\r  Scanned: {} files", current);
+        std::io::stdout().flush().ok();
+    }
+
+    fn phase_completed(&self, _name: &str) {}
+
+    fn finding_discovered(&self, _finding: &protectinator_core::Finding) {}
+
+    fn error(&self, _module: &str, _message: &str) {}
 }

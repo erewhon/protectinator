@@ -39,7 +39,7 @@ pub use hasher::{HashAlgorithm, Hasher};
 pub use scanner::{FileEntry, FileScanner, FileType, ScanStats};
 pub use verifier::{
     diff_baselines, BaselineDiff, BaselineVerifier, DiffType, FileVerification,
-    VerificationResult, VerificationSummary, VerifierConfig,
+    FimProgressCallback, FimProgressInfo, VerificationResult, VerificationSummary, VerifierConfig,
 };
 
 use protectinator_core::{

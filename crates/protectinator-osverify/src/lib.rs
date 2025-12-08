@@ -36,7 +36,7 @@ pub mod error;
 pub mod manifest;
 pub mod pkgmgr;
 
-pub use engine::{VerificationEngine, VerificationMode, VerifyConfig, VerifyIssue, VerifySummary};
+pub use engine::{ProgressCallback, ProgressInfo, VerificationEngine, VerificationMode, VerifyConfig, VerifyIssue, VerifySummary};
 pub use error::{OsVerifyError, Result};
 pub use manifest::{FileEntry, HashAlgorithm, Manifest};
 pub use pkgmgr::{

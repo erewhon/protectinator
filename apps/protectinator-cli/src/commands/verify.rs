@@ -3,9 +3,11 @@
 use clap::{Args, Subcommand};
 use protectinator_osverify::{
     detect_package_manager, get_package_manager, FileStatus, Manifest, PackageManagerType,
-    VerificationEngine, VerificationMode, VerifyConfig,
+    ProgressInfo, VerificationEngine, VerificationMode, VerifyConfig,
 };
+use std::io::{self, Write};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Instant;
 
 #[derive(Subcommand)]
@@ -44,6 +46,10 @@ pub struct OsVerifyArgs {
     /// Include permission changes
     #[arg(long)]
     permissions: bool,
+
+    /// Show cumulative progress (files and bytes checked)
+    #[arg(long)]
+    progress: bool,
 }
 
 #[derive(Args)]
@@ -79,6 +85,23 @@ pub fn run(cmd: VerifyCommands) -> anyhow::Result<()> {
     }
 }
 
+/// Format bytes in human-readable form
+fn format_bytes(bytes: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = KB * 1024;
+    const GB: u64 = MB * 1024;
+
+    if bytes >= GB {
+        format!("{:.2} GB", bytes as f64 / GB as f64)
+    } else if bytes >= MB {
+        format!("{:.2} MB", bytes as f64 / MB as f64)
+    } else if bytes >= KB {
+        format!("{:.2} KB", bytes as f64 / KB as f64)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
 fn run_os_verify(args: OsVerifyArgs) -> anyhow::Result<()> {
     let start = Instant::now();
 
@@ -95,12 +118,44 @@ fn run_os_verify(args: OsVerifyArgs) -> anyhow::Result<()> {
         std::process::exit(1);
     }
 
+    // Set up progress callback if --progress flag is set
+    let progress_callback = if args.progress {
+        Some(Arc::new(move |info: ProgressInfo| {
+            let pkg_progress = if let Some(total) = info.total_packages {
+                format!("{}/{}", info.packages_checked, total)
+            } else {
+                format!("{}", info.packages_checked)
+            };
+
+            // Calculate MB/s rate
+            let elapsed_secs = info.elapsed.as_secs_f64();
+            let rate = if elapsed_secs > 0.0 {
+                let mb_checked = info.bytes_checked as f64 / (1024.0 * 1024.0);
+                format!("{:.1} MB/s", mb_checked / elapsed_secs)
+            } else {
+                "-- MB/s".to_string()
+            };
+
+            print!(
+                "\r\x1b[KProgress: {} files, {} ({}) [{} packages]",
+                info.files_checked,
+                format_bytes(info.bytes_checked),
+                rate,
+                pkg_progress
+            );
+            let _ = io::stdout().flush();
+        }) as Arc<dyn Fn(ProgressInfo) + Send + Sync>)
+    } else {
+        None
+    };
+
     let config = VerifyConfig {
         mode: VerificationMode::PackageManager,
         skip_config: args.skip_config,
         check_permissions: args.permissions,
         packages: args.packages,
         show_progress: true,
+        progress_callback,
         ..Default::default()
     };
 
@@ -114,6 +169,11 @@ fn run_os_verify(args: OsVerifyArgs) -> anyhow::Result<()> {
 
     let engine = VerificationEngine::new(config);
     let summary = engine.verify().map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    // Clear progress line if it was shown
+    if args.progress {
+        println!("\r\x1b[K");
+    }
 
     // Display issues
     if !summary.issues.is_empty() {
