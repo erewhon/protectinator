@@ -5,7 +5,8 @@
 rustflags = ["-C", "target-feature=+crt-static", "-C", "link-self-contained=yes"]
 
 [target.aarch64-unknown-linux-musl]
-rustflags = ["-C", "target-feature=+crt-static", "-C", "link-self-contained=yes"]
+linker = "scripts/zig-cc-aarch64-linux-musl"
+rustflags = ["-C", "target-feature=+crt-static", "-C", "link-self-contained=no"]
 
 # Windows: Static CRT linking (for future Windows support)
 [target.x86_64-pc-windows-msvc]

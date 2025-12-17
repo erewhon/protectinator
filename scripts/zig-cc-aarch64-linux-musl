@@ -1,0 +1,17 @@
+#!/bin/sh
+# Wrapper script for zig cc targeting aarch64-linux-musl
+# Filters out incompatible --target flags from cc-rs
+
+args=""
+for arg in "$@"; do
+    case "$arg" in
+        --target=aarch64-unknown-linux-musl)
+            # Skip - we already set the target via -target
+            ;;
+        *)
+            args="$args $arg"
+            ;;
+    esac
+done
+
+exec zig cc -target aarch64-linux-musl $args
